@@ -11,8 +11,8 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 
-from python.torx.module.layer import crxb_Conv2d
-from python.torx.module.layer import crxb_Linear
+from torx.module.layer import crxb_Conv2d
+from torx.module.layer import crxb_Linear
 
 
 def save_checkpoint(state, is_best, filename):
@@ -40,42 +40,55 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
 
-class Net(nn.Module):
+class AlexNetPytorx(nn.Module):
     def __init__(self, crxb_size, gmin, gmax, gwire, gload, vdd, ir_drop, freq, temp, device, scaler_dw, enable_noise,
                  enable_SAF, enable_ec_SAF):
-        super(Net, self).__init__()
-        # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
-        # self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        # self.conv2_drop = nn.Dropout2d()
-        # self.fc1 = nn.Linear(320, 50)
-        # self.fc2 = nn.Linear(50, 10)
-        self.conv1 = crxb_Conv2d(1, 10, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                                 gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
-                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
-                                 enable_noise=enable_noise, ir_drop=ir_drop, device=device)
-        self.conv2 = crxb_Conv2d(10, 20, kernel_size=5, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                                 gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
-                                 enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
-                                 enable_noise=enable_noise, ir_drop=ir_drop, device=device)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = crxb_Linear(320, 50, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                               gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
-                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise,
-                               enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
-        self.fc2 = crxb_Linear(50, 10, crxb_size=crxb_size, scaler_dw=scaler_dw,
-                               gmax=gmax, gmin=gmin, gwire=gwire, gload=gload, freq=freq, temp=temp,
-                               vdd=vdd, ir_drop=ir_drop, device=device, enable_noise=enable_noise,
-                               enable_ec_SAF=enable_ec_SAF, enable_SAF=enable_SAF)
-
+        super(AlexNetPytorx, self).__init__()
+        self.conv1 = crxb_Conv2d(3, 64, kernel_size=11, stride=4, padding=5, crxb_size=crxb_size, scaler_dw=scaler_dw,
+                                gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
+                                enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+        self.conv2 = crxb_Conv2d(64, 192, kernel_size=5, padding=2, crxb_size=crxb_size, scaler_dw=scaler_dw,
+                                gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
+                                enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+        self.conv3 = crxb_Conv2d(192, 384, kernel_size=3, padding=1, crxb_size=crxb_size, scaler_dw=scaler_dw,
+                                gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
+                                enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+        self.conv4 = crxb_Conv2d(384, 256, kernel_size=3, padding=1, crxb_size=crxb_size, scaler_dw=scaler_dw,
+                                gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
+                                enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+        self.conv5 = crxb_Conv2d(256, 256, kernel_size=3, padding=1, crxb_size=crxb_size, scaler_dw=scaler_dw,
+                                gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
+                                enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+        self.features = nn.Sequential(
+            self.conv1,
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            self.conv2,
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            self.conv3,
+            nn.ReLU(inplace=True),
+            self.conv4,
+            nn.ReLU(inplace=True),
+            self.conv5,
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+        )
+        self.fc = crxb_Linear(256, 10, crxb_size=crxb_size, scaler_dw=scaler_dw,
+                                gwire=gwire, gload=gload, gmax=gmax, gmin=gmin, vdd=vdd, freq=freq, temp=temp,
+                                enable_SAF=enable_SAF, enable_ec_SAF=enable_ec_SAF,
+                                enable_noise=enable_noise, ir_drop=ir_drop, device=device)
+    
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
-        x = self.fc2(x)
-
-        return F.log_softmax(x, dim=1)
+        x = self.features(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
 
 
 def train(model, device, criterion, optimizer, train_loader, epoch):
@@ -209,21 +222,18 @@ def main():
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
+        datasets.CIFAR10('data/', train=True, download=True,
+                       transform=transforms.Normalize(
+                            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))),
         batch_size=args.batch_size, shuffle=True, **kwargs)
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])),
+        datasets.CIFAR10('data/', train=False,
+                        transform=transforms.Normalize(
+                            (0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))),
         batch_size=args.test_batch_size, shuffle=True, **kwargs)
 
-    model = Net(crxb_size=args.crxb_size, gmax=args.gmax, gmin=args.gmin, gwire=args.gwire, gload=args.gload,
+    model = AlexNetPytorx(crxb_size=args.crxb_size, gmax=args.gmax, gmin=args.gmin, gwire=args.gwire, gload=args.gload,
                 vdd=args.vdd, ir_drop=args.ir_drop, device=device, scaler_dw=args.scaler_dw, freq=args.freq, temp=args.temp,
                 enable_SAF=args.enable_SAF, enable_noise=args.enable_noise, enable_ec_SAF=args.enable_ec_SAF).to(device)
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
